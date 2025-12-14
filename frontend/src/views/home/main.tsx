@@ -54,9 +54,6 @@ export default function JokePayPage() {
       } else if (result.error) {
         setStatus(result.error);
       } else if (result.paymentDetails) {
-        setStatus(
-          `Payment confirmed ✅ Signature: ${result.paymentDetails.signature}`
-        );
         setJoke(result.paymentDetails.joke);
       } else {
         setStatus("Unknown response from server");
