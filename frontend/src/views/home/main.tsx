@@ -12,7 +12,7 @@ import { RPC_SOL } from "../../utils/constants";
 const connection = new Connection(RPC_SOL);
 
 // Devnet USDC mint
-const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+const USDC_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 
 // Your receiving wallet
 const MERCHANT_WALLET = new PublicKey(
@@ -41,6 +41,9 @@ export default function JokePayPage() {
       setStatus("Awaiting payment signature...");
 
       const userATA = await getAssociatedTokenAddress(USDC_MINT, publicKey);
+
+      console.log({ userATA: userATA.toBase58() });
+
 
       const merchantATA = await getAssociatedTokenAddress(
         USDC_MINT,
