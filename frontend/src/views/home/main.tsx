@@ -23,7 +23,7 @@ const MERCHANT_WALLET = new PublicKey(
 const AMOUNT = 1_000;
 
 export default function JokePayPage() {
-  const { publicKey, sendTransaction } = useWallet();
+  const { publicKey, sendTransaction, signTransaction } = useWallet();
 
   const [topic, setTopic] = useState("");
   const [joke, setJoke] = useState("");
@@ -44,7 +44,6 @@ export default function JokePayPage() {
 
       console.log({ userATA: userATA.toBase58() });
 
-
       const merchantATA = await getAssociatedTokenAddress(
         USDC_MINT,
         MERCHANT_WALLET
@@ -61,17 +60,7 @@ export default function JokePayPage() {
 
       const tx = new Transaction().add(ix);
 
-      const sig = await sendTransaction(tx, connection);
-      setStatus("Confirming transaction...");
-
-      await connection.confirmTransaction(sig, "confirmed");
-
-      setStatus("Payment confirmed ✅");
-      setJoke(
-        `Premium joke about ${
-          topic || "Solana"
-        }:\nWhy did the blockchain go to therapy? It had too many trust issues 🤣`
-      );
+      const sig = await signTransaction(tx, connection);
     } catch (err: any) {
       setStatus(err.message || "Payment failed");
     } finally {
