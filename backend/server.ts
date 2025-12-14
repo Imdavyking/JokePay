@@ -1,8 +1,12 @@
 // x402-compliant server with USDC (SPL Token) payments
 import express from "express";
 import cors from "cors";
+import OpenAI from "openai";
 import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token";
+// Load environment variables from .env file
+import dotenv from "dotenv";
+dotenv.config();
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 
@@ -13,6 +17,10 @@ const USDC_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 const RECIPIENT_WALLET = new PublicKey(
   "AfsDkH86BvGK2GjGytLyotFihvmoc9aTwLNG5K5ZjuUw"
 );
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // Derive the recipient's USDC token account (Associated Token Account)
 const RECIPIENT_TOKEN_ACCOUNT = await getAssociatedTokenAddress(
@@ -27,9 +35,53 @@ const app = express();
 app.use(cors()); // ✅ enable CORS for all origins
 app.use(express.json());
 
+app.get("/free", async (req, res) => {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        { role: "system", content: "You are a funny joke generator." },
+        {
+          role: "user",
+          content: `Give me a short, clean, generic joke suitable for anyone.`,
+        },
+      ],
+      max_tokens: 60,
+    });
+
+    console.log(completion);
+
+    const joke = completion.choices[0]?.message?.content;
+
+    if (!joke) {
+      return res.status(500).json({
+        error: "Failed to generate joke",
+      });
+    }
+
+    return res.json({
+      data: "Free content!",
+      paymentDetails: {
+        signature: null,
+        amount: null,
+        amountUSDC: 0,
+        recipient: null,
+        explorerUrl: null,
+        joke,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to generate joke",
+    });
+    return;
+  }
+});
+
 // x402 endpoint - Quote or verify payment
 app.get("/premium", async (req, res) => {
   const xPaymentHeader = req.header("X-Payment");
+  const topic = req.query.topic as string | undefined;
 
   // If client provided X-Payment header, verify and submit transaction
   if (xPaymentHeader) {
@@ -131,6 +183,30 @@ app.get("/premium", async (req, res) => {
       // Note: Solana blockchain automatically rejects duplicate transaction signatures
       console.log("Submitting transaction to network...");
 
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: "You are a funny joke generator." },
+          {
+            role: "user",
+            content: `Tell me a short, funny joke about ${
+              topic || "programming"
+            }.`,
+          },
+        ],
+        max_tokens: 60,
+      });
+
+      console.log(completion);
+
+      const joke = completion.choices[0]?.message?.content;
+
+      if (!joke) {
+        return res.status(500).json({
+          error: "Failed to generate joke",
+        });
+      }
+
       const signature = await connection.sendRawTransaction(txBuffer, {
         skipPreflight: false,
         preflightCommitment: "confirmed",
@@ -210,7 +286,7 @@ app.get("/premium", async (req, res) => {
           amountUSDC: amountReceived / 1000000,
           recipient: RECIPIENT_TOKEN_ACCOUNT.toBase58(),
           explorerUrl: `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
-          joke: "Why do programmers prefer dark mode? Because light attracts bugs!",
+          joke,
         },
       });
     } catch (e) {

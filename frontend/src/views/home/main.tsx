@@ -30,8 +30,42 @@ export default function JokePayPage() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const getFreeJoke = () => {
-    setJoke("Why do programmers hate nature? Too many bugs 😂");
+  const getFreeJoke = async () => {
+    try {
+      setLoading(true);
+      setStatus("Getting free joke...");
+      const freeJoke = await fetch(`${BACKEND_URL}/free`);
+
+      const result = (await freeJoke.json()) as {
+        data?: string;
+        error?: string;
+        paymentDetails?: {
+          signature: string;
+          amount: number;
+          amountUSDC: number;
+          recipient: string;
+          explorerUrl: string;
+          joke: string;
+        };
+      };
+
+      if (freeJoke.status === 402) {
+        setStatus("Payment required or invalid transaction");
+      } else if (result.error) {
+        setStatus(result.error);
+      } else if (result.paymentDetails) {
+        setStatus(
+          `Payment confirmed ✅ Signature: ${result.paymentDetails.signature}`
+        );
+        setJoke(result.paymentDetails.joke);
+      } else {
+        setStatus("Unknown response from server");
+      }
+    } catch (error: any) {
+      setStatus(error.message || "couldn't create joke");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const payAndGetJoke = async () => {
@@ -76,7 +110,7 @@ export default function JokePayPage() {
         "base64"
       );
 
-      const paid = await fetch(`${BACKEND_URL}/premium`, {
+      const paid = await fetch(`${BACKEND_URL}/premium?topic=${topic}`, {
         headers: {
           "X-Payment": xPaymentHeader,
         },
@@ -129,7 +163,8 @@ export default function JokePayPage() {
           <h2 className="text-xl font-semibold">Free Joke</h2>
           <button
             onClick={getFreeJoke}
-            className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700"
+            disabled={loading}
+            className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
           >
             Get Free Joke
           </button>
