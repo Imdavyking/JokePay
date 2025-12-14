@@ -143,6 +143,7 @@ export default function JokePayPage() {
       setStatus(err.message || "Payment failed");
     } finally {
       setLoading(false);
+      setTopic("");
     }
   };
 
@@ -162,7 +163,7 @@ export default function JokePayPage() {
           <button
             onClick={getFreeJoke}
             disabled={loading}
-            className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
+            className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 hover:cursor-pointer"
           >
             Get Free Joke
           </button>
@@ -180,7 +181,7 @@ export default function JokePayPage() {
           <button
             onClick={payAndGetJoke}
             disabled={loading}
-            className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+            className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 hover:cursor-pointer"
           >
             {loading ? "Processing..." : "Pay 0.001 USDC & Get Joke"}
           </button>
