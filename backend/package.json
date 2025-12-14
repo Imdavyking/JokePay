@@ -4,7 +4,6 @@
   "scripts": {
     "start": "tsx server.ts"
   },
-  "packageManager": "yarn@4.3.1",
   "dependencies": {
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
