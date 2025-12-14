@@ -5,7 +5,7 @@ import {
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { RPC_SOL } from "../../utils/constants";
+import { BACKEND_URL, RPC_SOL } from "../../utils/constants";
 
 // ===== CONFIG =====
 
@@ -23,7 +23,7 @@ const MERCHANT_WALLET = new PublicKey(
 const AMOUNT = 1_000;
 
 export default function JokePayPage() {
-  const { publicKey, sendTransaction, signTransaction } = useWallet();
+  const { publicKey, signTransaction } = useWallet();
 
   const [topic, setTopic] = useState("");
   const [joke, setJoke] = useState("");
@@ -42,8 +42,6 @@ export default function JokePayPage() {
 
       const userATA = await getAssociatedTokenAddress(USDC_MINT, publicKey);
 
-      console.log({ userATA: userATA.toBase58() });
-
       const merchantATA = await getAssociatedTokenAddress(
         USDC_MINT,
         MERCHANT_WALLET
@@ -59,8 +57,43 @@ export default function JokePayPage() {
       );
 
       const tx = new Transaction().add(ix);
+      tx.feePayer = publicKey;
+      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
-      const sig = await signTransaction(tx, connection);
+      const sig = await signTransaction!(tx);
+      const serializedTx = sig.serialize().toString("base64");
+
+      const paymentProof = {
+        x402Version: 1,
+        scheme: "exact",
+        network: "solana-devnet",
+        payload: {
+          serializedTransaction: serializedTx,
+        },
+      };
+
+      const xPaymentHeader = Buffer.from(JSON.stringify(paymentProof)).toString(
+        "base64"
+      );
+
+      const paid = await fetch(`${BACKEND_URL}/premium`, {
+        headers: {
+          "X-Payment": xPaymentHeader,
+        },
+      });
+
+      const result = (await paid.json()) as {
+        data?: string;
+        error?: string;
+        paymentDetails?: {
+          signature: string;
+          amount: number;
+          amountUSDC: number;
+          recipient: string;
+          explorerUrl: string;
+          joke: string;
+        };
+      };
     } catch (err: any) {
       setStatus(err.message || "Payment failed");
     } finally {
