@@ -94,6 +94,19 @@ export default function JokePayPage() {
           joke: string;
         };
       };
+
+      if (paid.status === 402) {
+        setStatus("Payment required or invalid transaction");
+      } else if (result.error) {
+        setStatus(result.error);
+      } else if (result.paymentDetails) {
+        setStatus(
+          `Payment confirmed ✅ Signature: ${result.paymentDetails.signature}`
+        );
+        setJoke(result.paymentDetails.joke);
+      } else {
+        setStatus("Unknown response from server");
+      }
     } catch (err: any) {
       setStatus(err.message || "Payment failed");
     } finally {
